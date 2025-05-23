@@ -36,30 +36,30 @@ supports_truecolor() {
     return 1
 }
 
-# https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash
 compare_versions() {
-    if [[ $1 == $2 ]]
-    then
+    if [[ $1 == $2 ]]; then
         return 0
     fi
-    local IFS=.
-    local i ver1=($1) ver2=($2)
-    # fill empty fields in ver1 with zeros
-    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
-    do
-        ver1[i]=0
+
+    v1="$1"
+    v2="$2"
+
+    i=1
+    while :; do
+        part1=$(echo "$v1" | cut -d. -f$i)
+        part2=$(echo "$v2" | cut -d. -f$i)
+
+        [ -z "$part1" ] && part1=0
+        [ -z "$part2" ] && part2=0
+
+        [ "$part1" -gt "$part2" ] 2>/dev/null && return 1
+        [ "$part1" -lt "$part2" ] 2>/dev/null && return 2
+
+        [ -z "$part1" ] && [ -z "$part2" ] && break
+
+        i=$((i + 1))
     done
-    for ((i=0; i<${#ver1[@]}; i++))
-    do
-        if ((10#${ver1[i]:=0} > 10#${ver2[i]:=0}))
-        then
-            return 1
-        fi
-        if ((10#${ver1[i]} < 10#${ver2[i]}))
-        then
-            return 2
-        fi
-    done
+
     return 0
 }
 
