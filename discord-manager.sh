@@ -24,9 +24,15 @@
 
 MANAGER_VERSION="0.1.0"
 DISCORD_TARBALL_URL="https://discord.com/api/download?platform=linux&format=tar.gz"
-LOCAL_INSTALL_DIR="~/.local/bin/discord"
-SYSTEM_INSTALL_DIR="/opt/discord"
-INSTALL_DIR=""
+DISCORD_EXEC="Discord/Discord"
+DISCORD_ICON="Discord/discord.png"
+DESKTOP_DIR=$(eval echo "~/.local/share/applications")
+LOCAL_INSTALL_DIR="~/.local/share/discord"
+LOCAL_SYMLINK="~/.local/bin"
+LOCAL_DESKTOP="discord-user.desktop"
+SYSTEM_INSTALL_DIR="/usr/share/discord"
+SYSTEM_SYMLINK="/usr/bin"
+SYSTEM_DESKTOP="discord-system.desktop"
 LOCAL_INSTALL=0
 SYSTEM_INSTALL=0
 NO_BANNER=0
@@ -83,15 +89,23 @@ get_current_version() {
 
 configure_system_or_user() {
     if (( LOCAL_INSTALL )); then
-        INSTALL_DIR="$LOCAL_INSTALL_DIR"
+        INSTALL_DIR=$(eval echo "$LOCAL_INSTALL_DIR")
+        SYMLINK_DIR=$(eval echo "$LOCAL_SYMLINK")
+        DESKTOP_PATH="$DESKTOP_DIR/$LOCAL_DESKTOP"
     elif (( SYSTEM_INSTALL )); then
-        INSTALL_DIR="$SYSTEM_INSTALL_DIR"
+        INSTALL_DIR=$(eval echo "$SYSTEM_INSTALL_DIR")
+        SYMLINK_DIR=$(eval echo "$SYSTEM_SYMLINK")
+        DESKTOP_PATH="$DESKTOP_DIR/$SYSTEM_DESKTOP"
     elif [ "$EUID" -eq 0 ]; then
         SYSTEM_INSTALL=1
-        INSTALL_DIR="$SYSTEM_INSTALL_DIR"
+        INSTALL_DIR=$(eval echo "$SYSTEM_INSTALL_DIR")
+        SYMLINK_DIR=$(eval echo "$SYSTEM_SYMLINK")
+        DESKTOP_PATH="$DESKTOP_DIR/$SYSTEM_DESKTOP"
     else
         LOCAL_INSTALL=1
-        INSTALL_DIR="$LOCAL_INSTALL_DIR"
+        INSTALL_DIR=$(eval echo "$LOCAL_INSTALL_DIR")
+        SYMLINK_DIR=$(eval echo "$LOCAL_SYMLINK")
+        DESKTOP_PATH="$DESKTOP_DIR/$LOCAL_DESKTOP"
     fi
 }
 
@@ -166,6 +180,90 @@ ask_confirm() {
     done
 }
 
+install() {
+    current_version=$(get_current_version)
+
+    local user_or_system="PER-USER"
+
+    if (( SYSTEM_INSTALL )); then
+        user_or_system="SYSTEM"
+    fi
+
+    if [[ -n "$current_version" ]]; then
+        echo -e "Discord $BANNER_COLOR$current_version $user_or_system$RESET_COLOR is already installed. Use '$0 upgrade' to upgrade it."
+        exit 1
+    fi
+
+    latest_version=$(get_latest_version)
+    if [[ -z "$latest_version" ]]; then
+        echo "${RED_COLOR}Failed to get remote version information.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo -e "Installing Discord $BANNER_COLOR$user_or_system$RESET_COLOR"
+
+    echo -e "The latest version of Discord is: $BANNER_COLOR$latest_version$RESET_COLOR"
+
+    echo -e "Downloading Discord $BANNER_COLOR$latest_version$RESET_COLOR tarball..."
+
+    curl -Lo /tmp/discord.tar.gz -s "https://discord.com/api/download?platform=linux&format=tar.gz"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to download Discord tarball.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo "Creating directories..."
+
+    mkdir -p "$INSTALL_DIR"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to create installation directory.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo "Extracting Discord tarball..."
+
+    tar -xf /tmp/discord.tar.gz -C "$INSTALL_DIR"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to extract Discord tarball.$RESET_COLOR"
+        exit 1
+    fi   
+
+    echo "Setting up Discord..."
+
+    echo "$latest_version" > "$INSTALL_DIR/VERSION"
+    
+    ln -s "$INSTALL_DIR/$DISCORD_EXEC" "$SYMLINK_DIR/discord"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to create Discord symlinks.$RESET_COLOR"
+        exit 1
+    fi
+
+cat > "$DESKTOP_PATH" <<EOF
+[Desktop Entry]
+Name=Discord
+StartupWMClass=discord
+Comment=All-in-one voice and text chat for gamers that's free, secure, and works on both your desktop and phone.
+GenericName=Internet Messenger
+Exec=${SYMLINK_DIR}/discord
+Icon=${INSTALL_DIR}/${DISCORD_ICON}
+Type=Application
+Categories=Network;InstantMessaging;
+Path=${SYMLINK_DIR}
+EOF
+
+    update-desktop-database "$DESKTOP_DIR"
+
+    echo "Removing temporary files..."
+
+    rm /tmp/discord.tar.gz
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to delete downloaded tarball.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo -e "${GREEN_COLOR}Installation success!$RESET_COLOR"
+}
+
 uninstall() {    
     current_version=$(get_current_version)
 
@@ -187,9 +285,20 @@ uninstall() {
     echo -e "You are about to uninstall Discord $BANNER_COLOR$current_version $user_or_system$RESET_COLOR."
 
     if ask_confirm "Are you sure?" no; then
+        echo -e "Removing Discord $BANNER_COLOR$current_version $user_or_system$RESET_COLOR..."
         rm -rf "$INSTALL_DIR"
         if [[ $? -ne 0 ]]; then
-            echo "Failed to uninstall Discord."
+            echo "${RED_COLOR}Failed to uninstall Discord.$RESET_COLOR"
+            exit 1
+        fi
+        rm "$SYMLINK_DIR/discord"
+        if [[ $? -ne 0 ]]; then
+            echo "${RED_COLOR}Failed to uninstall Discord.$RESET_COLOR"
+            exit 1
+        fi
+        rm "$DESKTOP_PATH"
+        if [[ $? -ne 0 ]]; then
+            echo "${RED_COLOR}Failed to uninstall Discord.$RESET_COLOR"
             exit 1
         fi
     else
@@ -198,12 +307,15 @@ uninstall() {
     fi
 
     if ask_confirm "Do you want to remove Discord user data?" no; then
+        echo "Removing Discord user data..."
         rm -rf "~/.config/discord"
         if [[ $? -ne 0 ]]; then
-            echo "Failed to remove Discord user data."
+            echo "${RED_COLOR}Failed to remove Discord user data.$RESET_COLOR"
             exit 1
         fi
     fi
+
+    echo -e "${GREEN_COLOR}Uninstallation success!$RESET_COLOR"
 }
 
 version() {
@@ -212,9 +324,9 @@ version() {
     current_version=$(get_current_version)
     
     if (( LOCAL_INSTALL )) && [[ -n "$current_version" ]]; then
-        echo -e "You ($(whoami)) have Discord version: $BANNER_COLOR$current_version$RESET_COLOR"
+        echo -e "You ($(whoami)) have Discord version: $BANNER_COLOR$current_version PER-USER$RESET_COLOR"
     elif (( SYSTEM_INSTALL )) && [[ -n "$current_version" ]]; then
-        echo -e "You have Discord version: $BANNER_COLOR$current_version$RESET_COLOR"
+        echo -e "You have Discord version: $BANNER_COLOR$current_version SYSTEM$RESET_COLOR"
     elif (( LOCAL_INSTALL )); then
         echo "You ($(whoami)) do not have Discord installed. Use '$0 install' to install."
     else
@@ -227,7 +339,7 @@ check() {
     current_version=$(get_current_version)
 
     if [[ -z "$latest_version" ]]; then
-        echo "Failed to get remote version information."
+        echo "${RED_COLOR}Failed to get remote version information.$RESET_COLOR"
         exit 1
     fi
 
@@ -245,10 +357,10 @@ check() {
     echo -e "The latest version of Discord is: $BANNER_COLOR$latest_version$RESET_COLOR"
 
     if (( LOCAL_INSTALL )) && [[ -n "$current_version" ]]; then
-        echo -e "You ($(whoami)) have version: $BANNER_COLOR$current_version$RESET_COLOR"
+        echo -e "You ($(whoami)) have Discord version: $BANNER_COLOR$current_version PER-USER$RESET_COLOR"
         echo "$up_to_date_str"
     elif (( SYSTEM_INSTALL )) && [[ -n "$current_version" ]]; then
-        echo -e "You have version: $BANNER_COLOR$current_version$RESET_COLOR"
+        echo -e "You have Discord version: $BANNER_COLOR$current_version SYSTEM$RESET_COLOR"
         echo "$up_to_date_str"
     elif (( LOCAL_INSTALL )); then
         echo "You ($(whoami)) do not have Discord installed. Use '$0 install' to install."
@@ -284,6 +396,8 @@ else
     BANNER_COLOR="\e[94m"
 fi
 
+RED_COLOR="\e[1;31m"
+GREEN_COLOR="\e[1;32m"
 RESET_COLOR="\e[0m"
 
 subcommand="${1:-help}"
