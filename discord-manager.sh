@@ -264,6 +264,72 @@ EOF
     echo -e "${GREEN_COLOR}Installation success!$RESET_COLOR"
 }
 
+upgrade() {
+    check "no-msg"
+    if [[ $? -ne 1 ]]; then
+        exit 0
+    fi
+
+    ask_confirm "Do you want to install the latest version?" yes
+    if [[ $? -eq 1 ]]; then
+        exit 0
+    fi
+
+    current_version=$(get_current_version)
+
+    local user_or_system="PER-USER"
+
+    if (( SYSTEM_INSTALL )); then
+        user_or_system="SYSTEM"
+    fi
+
+    echo -e "Downloading Discord $BANNER_COLOR$latest_version$RESET_COLOR tarball..."
+
+    curl -Lo /tmp/discord.tar.gz -s "https://discord.com/api/download?platform=linux&format=tar.gz"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to download Discord tarball.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo -e "Removing Discord $BANNER_COLOR$current_version $user_or_system$RESET_COLOR..."
+
+    rm -rf "$INSTALL_DIR"
+    if [[ $? -ne 0 ]]; then
+        echo "${RED_COLOR}Failed to remove old Discord.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo "Creating directories..."
+
+    mkdir -p "$INSTALL_DIR"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to create installation directory.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo "Extracting Discord tarball..."
+
+    tar -xf /tmp/discord.tar.gz -C "$INSTALL_DIR"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to extract Discord tarball.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo "Setting up Discord..."
+
+    echo "$latest_version" > "$INSTALL_DIR/VERSION"
+
+    echo "Removing temporary files..."
+
+    rm /tmp/discord.tar.gz
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED_COLOR}Failed to delete downloaded tarball.$RESET_COLOR"
+        exit 1
+    fi
+
+    echo -e "${GREEN_COLOR}Upgrade success!$RESET_COLOR"
+}
+
 uninstall() {    
     current_version=$(get_current_version)
 
@@ -350,8 +416,15 @@ check() {
     up_to_date=$?
     up_to_date_str="Your version is up-to-date."
 
+    local rc=0
+
     if [[ up_to_date -eq 1 ]]; then
         up_to_date_str="Your version is out of date. Use '$0 upgrade' to upgrade."
+        rc=1
+    fi
+
+    if (( "$1" == "no-msg" )) && [[ up_to_date -eq 1 ]]; then
+        up_to_date_str="Your version is out of date."
     fi
 
     echo -e "The latest version of Discord is: $BANNER_COLOR$latest_version$RESET_COLOR"
@@ -364,9 +437,17 @@ check() {
         echo "$up_to_date_str"
     elif (( LOCAL_INSTALL )); then
         echo "You ($(whoami)) do not have Discord installed. Use '$0 install' to install."
+        return 0
     else
         echo "You do not have Discord installed. Use '$0 install' to install."
+        return 0
     fi
+
+    if [[ rc -eq 1 ]]; then
+        return 1
+    fi
+
+    return 0
 }
 
 help() {
@@ -435,7 +516,7 @@ case "$subcommand" in
         uninstall
         ;;
     upgrade)
-        echo "upgrade not implemented"
+        upgrade
         ;;
     version)
         version
