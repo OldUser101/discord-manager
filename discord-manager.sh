@@ -190,7 +190,7 @@ install() {
     fi
 
     if [[ -n "$current_version" ]]; then
-        echo -e "Discord $BANNER_COLOR$current_version $user_or_system$RESET_COLOR is already installed. Use '$0 upgrade' to upgrade it."
+        echo -e "Discord $BANNER_COLOR$current_version $user_or_system$RESET_COLOR is already installed. Use 'discord-manager upgrade' to upgrade it."
         exit 1
     fi
 
@@ -335,9 +335,9 @@ uninstall() {
 
     if [[ -z "$current_version" ]]; then
         if (( LOCAL_INSTALL )); then
-            echo "You ($(whoami)) do not have Discord installed. Use '$0 install' to install."
+            echo "You ($(whoami)) do not have Discord installed. Use 'discord-manager install' to install."
         else
-            echo "You do not have Discord installed. Use '$0 install' to install."
+            echo "You do not have Discord installed. Use 'discord-manager install' to install."
         fi
         exit 1
     fi
@@ -394,9 +394,9 @@ version() {
     elif (( SYSTEM_INSTALL )) && [[ -n "$current_version" ]]; then
         echo -e "You have Discord version: $BANNER_COLOR$current_version SYSTEM$RESET_COLOR"
     elif (( LOCAL_INSTALL )); then
-        echo "You ($(whoami)) do not have Discord installed. Use '$0 install' to install."
+        echo "You ($(whoami)) do not have Discord installed. Use 'discord-manager install' to install."
     else
-        echo "You do not have Discord installed. Use '$0 install' to install."
+        echo "You do not have Discord installed. Use 'discord-manager install' to install."
     fi
 }
 
@@ -419,7 +419,7 @@ check() {
     local rc=0
 
     if [[ up_to_date -eq 1 ]]; then
-        up_to_date_str="Your version is out of date. Use '$0 upgrade' to upgrade."
+        up_to_date_str="Your version is out of date. Use 'discord-manager upgrade' to upgrade."
         rc=1
     fi
 
@@ -436,10 +436,10 @@ check() {
         echo -e "You have Discord version: $BANNER_COLOR$current_version SYSTEM$RESET_COLOR"
         echo "$up_to_date_str"
     elif (( LOCAL_INSTALL )); then
-        echo "You ($(whoami)) do not have Discord installed. Use '$0 install' to install."
+        echo "You ($(whoami)) do not have Discord installed. Use 'discord-manager install' to install."
         return 0
     else
-        echo "You do not have Discord installed. Use '$0 install' to install."
+        echo "You do not have Discord installed. Use 'discord-manager install' to install."
         return 0
     fi
 
@@ -451,18 +451,18 @@ check() {
 }
 
 help() {
-    echo "Usage: $0 [ install | uninstall | upgrade | version | check | help ] [ --system | --user ] [ --no-banner ]"
+    echo "Usage: discord-manager [ install | uninstall | upgrade | version | check | help ] [ --system | --user ] [ --no-banner ]"
     echo "    Subcommands:"
     echo -e "$BANNER_COLOR        install$RESET_COLOR:     Downloads and installs the latest version of Discord."
-    echo -e "$BANNER_COLOR        uninstall$RESET_COLOR:   Removes Discord from this computer."
+    echo -e "$BANNER_COLOR        uninstall$RESET_COLOR:   Removes a Discord installation."
     echo -e "$BANNER_COLOR        upgrade$RESET_COLOR:     Upgrades an existing installation of Discord."
-    echo -e "$BANNER_COLOR        version$RESET_COLOR:     Displays the installed version of Discord, and DiscordManager."
-    echo -e "$BANNER_COLOR        check$RESET_COLOR:       Checks for a new Discord version, but does not update to it."
+    echo -e "$BANNER_COLOR        check$RESET_COLOR:       Checks for a new Discord version, but does not upgrade."
+    echo -e "$BANNER_COLOR        version$RESET_COLOR:     Displays the installed version of Discord and DiscordManager."
     echo -e "$BANNER_COLOR        help$RESET_COLOR:        Displays this help message."
     echo "    Options:"
-    echo -e "$BANNER_COLOR        --system$RESET_COLOR:    Use the system installation."
-    echo -e "$BANNER_COLOR        --user$RESET_COLOR:      Use the per-user installtion."
-    echo -e "$BANNER_COLOR        --no-banner$RESET_COLOR: Don't display the \"DiscordManager\" banner."
+    echo -e "$BANNER_COLOR        --system$RESET_COLOR:    Target the system wide installation of Discord."
+    echo -e "$BANNER_COLOR        --user$RESET_COLOR:      Target the current user installation of Discord."
+    echo -e "$BANNER_COLOR        --no-banner$RESET_COLOR: Disables the \"DiscordManager\" banner."
     echo "    Notes:"
     echo -e "        $BANNER_COLOR--system$RESET_COLOR and $BANNER_COLOR--user$RESET_COLOR cannot be used together."
     echo "    Copyright:"
@@ -498,7 +498,7 @@ done
 
 if (( LOCAL_INSTALL && SYSTEM_INSTALL )); then
     echo -e "Cannot use $BANNER_COLOR--system$RESET_COLOR and $BANNER_COLOR--user$RESET_COLOR in the same command."
-    echo "Use '$0 help' for more information."
+    echo "Use 'discord-manager help' for more information."
     exit 1;
 fi
 
@@ -529,7 +529,7 @@ case "$subcommand" in
         ;;
     *)
         echo "Unknown subcommand: $subcommand"
-        echo "Use '$0 help' for usage."
+        echo "Use 'discord-manager help' for usage."
         exit 1
         ;;
 esac

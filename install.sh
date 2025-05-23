@@ -143,6 +143,12 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
+wget -q -O "$INSTALL_DIR/install.sh" "$LATEST_SOURCE/install.sh"
+if [[ $? -ne 0 ]]; then
+    echo -e "${RED_COLOR}Failed to download DiscordManager.$RESET_COLOR"
+    exit 1
+fi
+
 wget -q -O "$INSTALL_DIR/README.md" "$LATEST_SOURCE/README.md"
 if [[ $? -ne 0 ]]; then
     echo -e "${RED_COLOR}Failed to download DiscordManager.$RESET_COLOR"
@@ -158,6 +164,12 @@ fi
 echo "Configuring DiscordManager..."
 
 chmod +x "$INSTALL_DIR/discord-manager.sh"
+if [[ $? -ne 0 ]]; then
+    echo -e "${RED_COLOR}Failed to change file permissions.$RESET_COLOR"
+    exit 1
+fi
+
+chmod +x "$INSTALL_DIR/install.sh"
 if [[ $? -ne 0 ]]; then
     echo -e "${RED_COLOR}Failed to change file permissions.$RESET_COLOR"
     exit 1
