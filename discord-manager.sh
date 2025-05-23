@@ -106,6 +106,28 @@ banner() {
     echo -e "$RESET_COLOR"
 }
 
+is_up_to_date() {
+    latest_version=$(get_latest_version)
+    current_version=$(get_current_version)
+
+    if [[ -z "$latest_version" ]]; then
+        echo "Failed to get remote version information."
+        exit 1
+    fi
+
+    if [[ ! -z "$current_version" ]]; then
+        compare_versions $latest_version $current_version
+    fi
+
+    up_to_date=$?
+
+    if [[ up_to_date -eq 2 ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 version() {
     echo -e "You have DiscordManager version: $BANNER_COLOR$MANAGER_VERSION$RESET_COLOR"
 
@@ -172,6 +194,10 @@ help() {
     echo -e "$BANNER_COLOR        --no-banner$RESET_COLOR: Don't display the \"DiscordManager\" banner."
     echo "    Notes:"
     echo -e "        $BANNER_COLOR--system$RESET_COLOR and $BANNER_COLOR--user$RESET_COLOR cannot be used together."
+    echo "    Copyright:"
+    echo -e "        DiscordManager copyright (C) 2025, Nathan Gill, under the MIT license. See LICENSE for details."
+    echo "    Disclaimer:"
+    echo "        Discord is a trademark of Discord Inc. This project is not affiliated with, endorsed by, or sponsored by Discord Inc."
 }
 
 if supports_truecolor; then
