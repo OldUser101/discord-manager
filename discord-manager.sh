@@ -128,6 +128,84 @@ is_up_to_date() {
     return 1
 }
 
+ask_confirm() {
+    local prompt="${1}"
+    local default="${2}"
+    local reply
+
+    local options
+    case "$default" in
+        yes|y) options="[Y/n]" ;;
+        no|n) options="[y/N]" ;;
+        *) options="[y/n]" ;;
+    esac
+
+    while true; do
+        read -rp "$prompt $options: " reply
+        reply=${reply,,}
+
+        if [[ -z "$reply" ]]; then
+            if [[ "$default" =~ ^(yes|y)$ ]]; then
+                return 0
+            else
+                return 1
+            fi
+        fi
+
+        case "$reply" in
+            y|yes) return 0 ;;
+            n|no) return 1 ;;
+            *)
+                if [[ "$default" =~ ^(yes|y)$ ]]; then
+                    return 0
+                else
+                    return 1
+                fi
+            ;;
+        esac
+    done
+}
+
+uninstall() {    
+    current_version=$(get_current_version)
+
+    if [[ -z "$current_version" ]]; then
+        if (( LOCAL_INSTALL )); then
+            echo "You ($(whoami)) do not have Discord installed. Use '$0 install' to install."
+        else
+            echo "You do not have Discord installed. Use '$0 install' to install."
+        fi
+        exit 1
+    fi
+
+    local user_or_system="PER-USER"
+
+    if (( SYSTEM_INSTALL )); then
+        user_or_system="SYSTEM"
+    fi
+
+    echo -e "You are about to uninstall Discord $BANNER_COLOR$current_version $user_or_system$RESET_COLOR."
+
+    if ask_confirm "Are you sure?" no; then
+        rm -rf "$INSTALL_DIR"
+        if [[ $? -ne 0 ]]; then
+            echo "Failed to uninstall Discord."
+            exit 1
+        fi
+    else
+        echo "Cancelled by user."
+        return 0
+    fi
+
+    if ask_confirm "Do you want to remove Discord user data?" no; then
+        rm -rf "~/.config/discord"
+        if [[ $? -ne 0 ]]; then
+            echo "Failed to remove Discord user data."
+            exit 1
+        fi
+    fi
+}
+
 version() {
     echo -e "You have DiscordManager version: $BANNER_COLOR$MANAGER_VERSION$RESET_COLOR"
 
@@ -237,12 +315,12 @@ fi
 
 case "$subcommand" in
     install)
-        echo "install not implemented"
+        install
         ;;
     uninstall)
-        echo "uninstall not implemented"
+        uninstall
         ;;
-    update)
+    upgrade)
         echo "upgrade not implemented"
         ;;
     version)
