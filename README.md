@@ -2,7 +2,7 @@
 
 A shell script for managing Discord installations on Linux.
 
-It is designed to replace the tedious task of downloading and reinstalling Discord when an update is available. This is especially helpful on non-Debian systems, where you have to manually extract the tarball.
+It is designed to replace the tedious task of downloading and reinstalling Discord when an update is available. This is especially helpful if you don't want to use Flatpak or Snap, since you have to manually extract the tarball.
 
 DiscordManager supports almost all Linux systems, provided you have a working internet connection, and a Bash shell.
 
