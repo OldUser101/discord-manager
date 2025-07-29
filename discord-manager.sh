@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THEf
 # SOFTWARE.
 
-MANAGER_VERSION="0.1.0"
+MANAGER_VERSION="0.1.1"
 DISCORD_TARBALL_URL="https://discord.com/api/download?platform=linux&format=tar.gz"
 DISCORD_EXEC="Discord/Discord"
 DISCORD_ICON="Discord/discord.png"
@@ -423,7 +423,7 @@ check() {
         rc=1
     fi
 
-    if (( "$1" == "no-msg" )) && [[ up_to_date -eq 1 ]]; then
+    if [[ "$1" == "no-msg" ]] && [[ up_to_date -eq 1 ]]; then
         up_to_date_str="Your version is out of date."
     fi
 
